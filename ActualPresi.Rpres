@@ -1,0 +1,265 @@
+ActualPresi
+========================================================
+author: Sydney Masterson
+date: April 26, 2019
+autosize: true
+
+```{r, echo=FALSE}
+library(dplyr)
+library(dplyr) #Data manipulation (also included in the tidyverse package)
+library(tidytext) #Text mining
+library(tidyr) #Spread, separate, unite, text mining (also included in the tidyverse package)
+library(widyr) #Use for pairwise correlation
+
+#Visualizations!
+library(ggplot2) #Visualizations (also included in the tidyverse package)
+library(ggrepel) #`geom_label_repel`
+library(gridExtra) #`grid.arrange()` for multi-graphs
+library(knitr) #Create nicely formatted output tables
+library(kableExtra) #Create nicely formatted output tables
+library(formattable) #For the color_tile function
+library(circlize) #Visualizations - chord diagram
+library(memery) #Memes - images with plots
+library(magick) #Memes - images with plots (image_read)
+library(yarrr)  #Pirate plot
+library(radarchart) #Visualizations
+
+library(igraph) #ngram network diagrams
+library(ggraph)
+library(NLP)
+library(qdap)
+library(tibble)
+library(tidytext)
+library(magrittr)
+library(lexicon)
+library(dplyr)
+library(stringr)
+library(gutenbergr)
+library(xml2)
+library(XML)
+library(methods)
+library(dplyr)
+library(tidytext)
+library(Matrix)
+library(readr)
+library(tm)
+library(dplyr)
+library(tidytext)
+library(janeaustenr)
+library(tm.plugin.webmining)
+library(purrr)
+```
+
+
+Chapter 3
+========================================================
+
+```{r}
+English <- read_csv("English.csv")
+Spanish <- read_csv("Spanish.csv")
+english1 <- unnest_tokens(Lurching, Language, Language, token = "words", format = "xml", to_lower = TRUE, drop = FALSE)
+english <- tidy(English)
+english
+
+English %>%
+  count(English, term, wt = count) %>%
+  ungroup() %>%
+  filter(n >= 200) %>%
+  mutate(n = ifelse(sentiment == "negative", -n, n)) %>%
+  mutate(term = reorder(term, n)) %>%
+  ggplot(aes(term, n, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  ylab("Contribution to sentiment") +
+  coord_flip()
+
+terms<-Terms(English)
+is_tibble(English)
+is_tibble(Lurching)
+
+Lurching <- read_csv("Lurching.csv")
+extract(Lurching)
+
+Heathens <- as_tibble(Lurching)
+df <-DocumentTermMatrix(Heathens, language)
+Churches<- tidy(Heathens)
+terms <- terms(Heathens)
+
+df_sentiments <- Churches %>%
+  inner_join(get_sentiments("bing"), by = c(term = "word"))
+
+df_sentiments
+
+
+Tigers_tidy <- read_csv("Tigers.csv")
+View(Tigers_tidy)
+Tigers2 <- as_tibble(Tigers_tidy)
+
+help("unnest_tokens")
+
+# language <- tidy(Tigers2)
+Church <- unnest_tokens(Heathens, phrases, Language, token = "lines") %>%
+count(Language, sort = TRUE) %>%
+#ungroup()
+
+total_lwords <- Church %>% 
+  group_by(String, add=FALSE)
+summarize(total = sum(String)
+          total_lwords
+
+book_words <- left_join(book_words, total_words)
+
+book_words
+```
+
+```{r}
+ggplot(book_words, aes(n/total, fill = book)) +
+  geom_histogram(show.legend = FALSE) +
+  xlim(NA, 0.0009) +
+  facet_wrap(~book, ncol = 2, scales = "free_y")
+```
+
+```{r}
+freq_by_rank <- book_words %>% 
+  group_by(book) %>% 
+  mutate(rank = row_number(), 
+         `term frequency` = n/total)
+
+freq_by_rank
+```
+
+```{r}
+freq_by_rank %>% 
+  ggplot(aes(rank, `term frequency`, color = book)) + 
+  geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+```{r}
+rank_subset <- freq_by_rank %>% 
+  filter(rank < 500,
+         rank > 10)
+
+lm(log10(`term frequency`) ~ log10(rank), data = rank_subset)
+```
+
+$$frequency∝1/rank$$
+
+```{r}
+freq_by_rank %>% 
+  ggplot(aes(rank, `term frequency`, color = book)) + 
+  geom_abline(intercept = -0.62, slope = -1.1, color = "gray50", linetype = 2) +
+  geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+```{r}
+book_words <- book_words %>%
+  bind_tf_idf(word, book, n)
+book_words
+```
+
+```{r}
+book_words %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+```
+
+```{r}
+book_words %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+  group_by(book) %>% 
+  top_n(15) %>% 
+  ungroup %>%
+  ggplot(aes(word, tf_idf, fill = book)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~book, ncol = 2, scales = "free") +
+  coord_flip()
+```
+
+```{r}
+physics <- gutenberg_download(c(37729, 14725, 13476, 5001), 
+                              meta_fields = "author")
+```
+
+```{r}
+physics_words <- physics %>%
+  unnest_tokens(word, text) %>%
+  count(author, word, sort = TRUE) %>%
+  ungroup()
+
+physics_words
+```
+
+```{r}
+plot_physics <- physics_words %>%
+  bind_tf_idf(word, author, n) %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word = factor(word, levels = rev(unique(word)))) %>%
+  mutate(author = factor(author, levels = c("Galilei, Galileo",
+                                            "Huygens, Christiaan", 
+                                            "Tesla, Nikola")))
+
+plot_physics %>% 
+  group_by(author) %>% 
+  top_n(15, tf_idf) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, tf_idf)) %>%
+  ggplot(aes(word, tf_idf, fill = author)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~author, ncol = 2, scales = "free") +
+  coord_flip()
+```
+
+
+```{r}
+physics %>% 
+  filter(str_detect(text, "AK")) %>% 
+  select(text)
+```
+
+
+
+```{r}
+mystopwords <- data_frame(word = c("eq", "co", "rc", "ac", "ak", "bn", 
+                                   "fig", "file", "cg", "cb", "cm"))
+physics_words <- anti_join(physics_words, mystopwords, by = "word")
+plot_physics <- physics_words %>%
+  bind_tf_idf(word, author, n) %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word = factor(word, levels = rev(unique(word)))) %>%
+  group_by(author) %>% 
+  top_n(15, tf_idf) %>%
+  ungroup %>%
+  mutate(author = factor(author, levels = c("Galilei, Galileo",
+                                            "Huygens, Christiaan",
+                                            "Tesla, Nikola")))
+
+ggplot(plot_physics, aes(word, tf_idf, fill = author)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~author, ncol = 2, scales = "free") +
+  coord_flip()
+```
+
+
+
+Slide With Code
+========================================================
+
+```{r}
+summary(cars)
+Tigers <- read_csv("Tigers - Sheet2.csv")
+View(Tigers_Sheet2)
+```
+
+Slide With Plot
+========================================================
+
+```{r, echo=FALSE}
+plot(cars)
+```
